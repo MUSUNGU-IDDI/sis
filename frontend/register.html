@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SIS Registration</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div class="login-container">
+    <div class="login-form">
+      <h1>Create Account</h1>
+      <p>Register a new SIS user</p>
+      <form id="registerForm">
+        <div class="form-group">
+          <label for="name">Full Name</label>
+          <input type="text" id="name" required placeholder="John Doe">
+        </div>
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input type="email" id="email" required placeholder="example@domain.com">
+        </div>
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" required placeholder="Create a strong password">
+        </div>
+        <div class="form-group" id="courseGroup">
+          <label for="course">Course</label>
+          <select id="course">
+            <option value="">-- Select Course --</option>
+            <option value="BBIT">BBIT</option>
+            <option value="Computer Science">Computer Science</option>
+            <option value="Information Technology">Information Technology</option>
+            <option value="Software Engineering">Software Engineering</option>
+            <option value="Computer Technology">Computer Technology</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label for="role">User Role</label>
+          <select id="role" required>
+            <option value="">-- Select Role --</option>
+            <option value="student">Student</option>
+            <option value="lecturer">Lecturer</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+        <button type="submit">Register</button>
+        <div class="form-message" id="formMessage"></div>
+      </form>
+      <div class="register-link">
+        <p>Already have an account? <a href="index.html">Login here</a></p>
+      </div>
+    </div>
+  </div>
+  <script src="js/auth.js"></script>
+  <script>
+    document.getElementById('role').addEventListener('change', function () {
+      const role = this.value;
+      const courseGroup = document.getElementById('courseGroup');
+      if (role === 'student') {
+        courseGroup.style.display = 'block';
+      } else {
+        courseGroup.style.display = 'none';
+      }
+    });
+  
+    // Hide course field by default on page load
+    window.onload = function () {
+      const courseGroup = document.getElementById('courseGroup');
+      if (courseGroup) courseGroup.style.display = 'none';
+    };
+  </script>
+  
+</body>
+</html>

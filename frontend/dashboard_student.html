@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Student Dashboard</title>
+  <link rel="stylesheet" href="css/student_dashboard.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+  <div class="dashboard-wrapper">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <h2>My Dashboard</h2>
+      <ul>
+        <li class="nav-item active" data-section="profile">👤 My Info</li>
+        <li class="nav-item" data-section="grades">📊 Grades</li>
+        <li class="nav-item" data-section="attendance">📈 Attendance</li>
+        <li class="nav-item" data-section="notifications">🔔 Notifications</li>
+        <li class="nav-item" data-section="export">📤 Export Report</li>
+      </ul>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <!-- Profile Section -->
+      <div id="profile" class="section active">
+        <h2>Student Profile</h2>
+        <p><strong>Name:</strong> <span id="profileName">Loading...</span></p>
+        <p><strong>Reg No:</strong> <span id="profileRegNo">Loading...</span></p>
+        <p><strong>Course:</strong> <span id="profileCourse">Loading...</span></p>
+
+        <div id="courseUpdateSection" style="display:none; margin-top: 15px;">
+          <form id="courseForm">
+            <label>Select Course:</label>
+            <select id="course" required>
+              <option value="">-- Select Course --</option>
+              <option value="BBIT">BBIT</option>
+              <option value="Computer Science">Computer Science</option>
+              <option value="Information Technology">Information Technology</option>
+              <option value="Software Engineering">Software Engineering</option>
+              <option value="Computer Technology">Computer Technology</option>
+            </select>
+            <button type="submit">Update</button>
+          </form>
+          <div id="courseUpdateMessage"></div>
+        </div>
+      </div>
+
+      <!-- Grades Section -->
+      <div id="grades" class="section">
+        <h2>Academic Performance</h2>
+        <canvas id="gradesChart"></canvas>
+        <h3>Grades Summary</h3>
+        <table id="gradesTable">
+          <thead>
+            <tr><th>Subject</th><th>Grade</th></tr>
+          </thead>
+          <tbody id="gradesTableBody"></tbody>
+        </table>
+      </div>
+
+      <!-- Attendance Section -->
+      <div id="attendance" class="section">
+        <h2>Attendance Overview</h2>
+        <canvas id="attendanceBarChart"></canvas>
+        <p><strong>Attendance %:</strong> <span id="attendancePercentage">--</span>%</p>
+        <div id="examEligibilityStatus" class="eligibility-badge">Eligibility loading...</div>
+      </div>
+
+      <!-- Notifications Section -->
+      <div id="notifications" class="section">
+        <h2>Notifications</h2>
+        <ul id="notificationList"></ul>
+      </div>
+
+      <!-- Export Section -->
+      <div id="export" class="section">
+        <h2>Download Report</h2>
+        <button id="downloadReportBtn">Download PDF</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/student_dashboard.js"></script>
+  <script>
+    const navItems = document.querySelectorAll('.nav-item');
+    const sections = document.querySelectorAll('.section');
+
+    navItems.forEach(item => {
+      item.addEventListener('click', () => {
+        navItems.forEach(i => i.classList.remove('active'));
+        item.classList.add('active');
+        sections.forEach(sec => sec.classList.remove('active'));
+        const target = document.getElementById(item.getAttribute('data-section'));
+        if (target) target.classList.add('active');
+      });
+    });
+  </script>
+</body>
+</html>
