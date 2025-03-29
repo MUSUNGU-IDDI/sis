@@ -19,6 +19,9 @@
         <li class="nav-item" data-section="notifications">🔔 Notifications</li>
         <li class="nav-item" data-section="export">📤 Export Report</li>
       </ul>
+      
+      <!-- Logout Button -->
+      <button id="logoutBtn" class="logout-btn">🚪 Logout</button>
     </div>
 
     <!-- Main Content -->
@@ -95,6 +98,11 @@
         const target = document.getElementById(item.getAttribute('data-section'));
         if (target) target.classList.add('active');
       });
+    });
+
+    // Logout functionality
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+      window.location.href = 'backend/logout.php';
     });
   </script>
 </body>
