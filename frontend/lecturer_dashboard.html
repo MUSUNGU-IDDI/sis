@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Lecturer Dashboard</title>
+  <link rel="stylesheet" href="css/lecturer_dashboard.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <div class="dashboard-wrapper">
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+      <h2>Lecturer Panel</h2>
+      <ul>
+        <li class="nav-item active" onclick="showSection('dashboard')">🏠 Dashboard</li>
+        <li class="nav-item" onclick="showSection('manageGrades')">📊 Manage Grades</li>
+        <li class="nav-item" onclick="showSection('manageAttendance')">✅ Manage Attendance</li>
+        <li class="nav-item" onclick="showSection('analytics')">📈 Analytics</li>
+        <li class="nav-item" onclick="showSection('exportReports')">📂 Export Reports</li>
+      </ul>
+      <button class="logout-btn">🚪 Logout</button>
+      <button id="toggleSidebar" class="toggle-btn">☰</button>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <!-- Course & Class Selection Section -->
+      <div id="courseClassSelection" class="section active">
+        <h2>Select Course and Class</h2>
+        <form id="courseClassForm">
+          <label for="courseSelect">Course/Unit:</label>
+          <select id="courseSelect" required>
+            <option value="">-- Select Course --</option>
+            <option value="course1">Course 1</option>
+            <option value="course2">Course 2</option>
+            <option value="course3">Course 3</option>
+          </select>
+          <br>
+          <label for="classSelect">Class/Year Group:</label>
+          <select id="classSelect" required>
+            <option value="">-- Select Class --</option>
+            <option value="year1">Year 1</option>
+            <option value="year2">Year 2</option>
+            <option value="year3">Year 3</option>
+            <option value="year4">Year 4</option>
+            <option value="year5">Year 5</option>
+            <option value="year6">Year 6</option>
+          </select>
+          <br>
+          <button type="submit">Load Data</button>
+        </form>
+      </div>
+
+      <!-- Dashboard Overview Section -->
+      <section id="dashboard" class="section">
+        <h2>Dashboard Overview</h2>
+        <p>Welcome to the Lecturer Dashboard. Here you can manage grades, attendance, and view analytics.</p>
+      </section>
+
+      <!-- Manage Grades Section -->
+      <section id="manageGrades" class="section">
+        <h2>Manage Grades</h2>
+        <form id="gradeForm">
+          <label for="studentSelect">Student:</label>
+          <select id="studentSelect" required>
+            <option value="">-- Select Student --</option>
+            <!-- Populate dynamically -->
+          </select>
+          <br>
+          <label for="gradeInput">Grade:</label>
+          <input type="text" id="gradeInput" required>
+          <br>
+          <button type="submit">Submit Grade</button>
+        </form>
+        <h3>Existing Grades</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Student</th>
+              <th>Grade</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="gradesTable">
+            <!-- Dynamic data will be inserted here -->
+          </tbody>
+        </table>
+      </section>
+
+      <!-- Manage Attendance Section -->
+      <section id="manageAttendance" class="section">
+        <h2>Manage Attendance</h2>
+        <form id="attendanceForm">
+          <label for="attendanceStudentSelect">Student:</label>
+          <select id="attendanceStudentSelect" required>
+            <option value="">-- Select Student --</option>
+            <!-- Populate dynamically -->
+          </select>
+          <br>
+          <label for="attendanceStatus">Attendance:</label>
+          <select id="attendanceStatus" required>
+            <option value="Present">Present</option>
+            <option value="Absent">Absent</option>
+          </select>
+          <br>
+          <button type="submit">Update Attendance</button>
+        </form>
+        <h3>Attendance Records</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Student</th>
+              <th>Status</th>
+              <th>Date</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="attendanceTable">
+            <!-- Dynamic data will be inserted here -->
+          </tbody>
+        </table>
+      </section>
+
+      <!-- Analytics Section -->
+      <section id="analytics" class="section">
+        <h2>Analytics</h2>
+        <div class="chart-container">
+          <canvas id="gradeDistributionChart"></canvas>
+        </div>
+        <div class="chart-container">
+          <canvas id="attendanceTrendChart"></canvas>
+        </div>
+        <h3>Top & Bottom Performers</h3>
+        <table id="performanceTable">
+          <thead>
+            <tr>
+              <th>Student</th>
+              <th>Grade</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Dynamic data goes here -->
+          </tbody>
+        </table>
+      </section>
+
+      <!-- Export Reports Section -->
+      <section id="exportReports" class="section">
+        <h2>Export Reports</h2>
+        <button id="exportPDF">Download PDF</button>
+        <button id="exportCSV">Download CSV</button>
+      </section>
+    </div>
+  </div>
+  <script src="js/lecturer_dashboard.js"></script>
+</body>
+</html>
