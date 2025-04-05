@@ -1,218 +1,227 @@
-document.addEventListener("DOMContentLoaded", function () {
-    fetch('../backend/fetch_student_data.php')
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          // Student profile
-          document.getElementById("profileName").textContent = data.profile.name;
-          document.getElementById("profileRegNo").textContent = data.profile.reg_no;
-          document.getElementById("profileCourse").textContent = data.profile.course || "Not Selected";
+ document.addEventListener('DOMContentLoaded', function() {
+    // Get user data from sessionStorage
+   // const user = JSON.parse(sessionStorage.getItem('user'));
+    
+    // Redirect to login if no user data
+   // if (!user || user.role !== 'student') {
+     //   window.location.href = 'index.html';
+    //    return;
+   // }
+
+    const STUDENT_ID = user.student_id;
+    const BASE_URL = 'http://localhost/sis/backend/';
+    const ATTENDANCE_THRESHOLD = 75;
   
-          // Show course update form if course is empty
-          if (!data.profile.course || data.profile.course.trim() === "") {
-            document.getElementById("courseUpdateSection").style.display = "block";
+    // Initialize dashboard
+    initDashboard(STUDENT_ID);
+  
+    async function initDashboard(studentId) {
+      setupEventListeners();
+      await loadStudentProfile(studentId);
+      await loadAnalyticsData(studentId);
+    }
+  
+    async function loadStudentProfile(studentId) {
+      try {
+          const response = await fetch(`http://localhost/sis/backend/get_students.php?student_id=${studentId}`);
+          const data = await response.json();
+          
+          if (data.success) {
+              document.getElementById('studentId').textContent = data.student.student_id;
+              document.getElementById('studentName').textContent = data.student.name;
+              document.getElementById('studentCourse').textContent = data.student.course || 'Not specified';
+              document.getElementById('studentEmail').textContent = data.student.email;
           }
+      } catch (error) {
+          console.error('Profile load error:', error);
+      }
+  }
+    async function loadAnalyticsData(studentId) {
+      try {
+        const [gradesRes, attendanceRes] = await Promise.all([
+          fetch(`${BASE_URL}get_grades.php?student_id=${studentId}`),
+          fetch(`${BASE_URL}get_attendance.php?student_id=${studentId}`)
+        ]);
+        
+        const gradesData = await gradesRes.json();
+        const attendanceData = await attendanceRes.json();
+        
+        renderGradesPieChart(gradesData.data || []);
+        populateGradesTable(gradesData.data || []);
+        renderAttendanceBarChart(attendanceData.attendance || []);
+        updateAttendanceSummary(attendanceData.attendance || []);
+        
+      } catch (error) {
+        console.error('Analytics load error:', error);
+        showError('analytics', 'Failed to load analytics data');
+      }
+    }
   
-          // Render grades (3D Pie Chart)
-          renderGrades(data.grades);
-  
-          // Render attendance (3D Bar Chart)
-          renderAttendance(data.attendance);
-        } else {
-          alert("Failed to load student data.");
-        }
-      });
-  
-    // Handle course update
-    const courseForm = document.getElementById("courseForm");
-    if (courseForm) {
-      courseForm.addEventListener("submit", function (e) {
-        e.preventDefault();
-        const course = document.getElementById("course").value;
-  
-        fetch("../backend/update_course.php", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ course })
-        })
-          .then(res => res.json())
-          .then(response => {
-            document.getElementById("courseUpdateMessage").textContent = response.message;
-            if (response.success) {
-              document.getElementById("profileCourse").textContent = course;
-              document.getElementById("courseUpdateSection").style.display = "none";
-            }
-          });
+    function renderGradesPieChart(gradesData) {
+      const ctx = document.getElementById('gradesChart').getContext('2d');
+      const subjects = gradesData.map(g => g.subject);
+      const grades = gradesData.map(g => g.grade);
+      
+      const gradeColors = {
+          'A': '#2ecc71',
+          'B': '#3498db',
+          'C': '#f1c40f',
+          'D': '#e67e22',
+          'F': '#e74c3c'
+      };
+      
+      new Chart(ctx, {
+          type: 'pie',
+          data: {
+              labels: subjects,
+              datasets: [{
+                  data: gradesData.map(g => 1),
+                  backgroundColor: grades.map(g => gradeColors[g] || '#95a5a6'),
+                  borderWidth: 1
+              }]
+          },
+          options: {
+              plugins: {
+                  tooltip: {
+                      callbacks: {
+                          label: function(context) {
+                              return `${context.label}: ${gradesData[context.dataIndex].grade}`;
+                          }
+                      }
+                  }
+              }
+          }
       });
     }
   
-    // Load notifications
-    fetch('../backend/fetch_notifications.php')
-      .then(res => res.json())
-      .then(notifications => {
-        const list = document.getElementById("notificationList");
-        list.innerHTML = '';
-        if (notifications.length > 0) {
-          notifications.forEach(note => {
-            const li = document.createElement("li");
-            li.textContent = note.message;
-            list.appendChild(li);
-          });
-        } else {
-          list.innerHTML = "<li>No notifications available.</li>";
-        }
+    function renderAttendanceBarChart(attendanceData) {
+      const ctx = document.getElementById('attendanceChart').getContext('2d');
+      const labels = attendanceData.map(a => new Date(a.date).toLocaleDateString());
+      const data = attendanceData.map(a => a.status === 'Present' ? 1 : 0);
+      const colors = attendanceData.map(a => a.status === 'Present' ? '#1cc88a' : '#e74a3b');
+      
+      new Chart(ctx, {
+          type: 'bar',
+          data: {
+              labels: labels,
+              datasets: [{
+                  label: 'Attendance',
+                  data: data,
+                  backgroundColor: colors,
+                  borderColor: "#fff",
+                  borderWidth: 1
+              }]
+          },
+          options: {
+              scales: {
+                  y: {
+                      beginAtZero: true,
+                      max: 1,
+                      ticks: {
+                          callback: function(value) {
+                              return value === 1 ? 'Present' : 'Absent';
+                          }
+                      }
+                  }
+              }
+          }
+      });
+    }
+  
+    function updateAttendanceSummary(attendanceData) {
+      if (!attendanceData.length) {
+          document.getElementById('attendancePercentage').textContent = 'No data';
+          return;
+      }
+      
+      const presentCount = attendanceData.filter(a => a.status === 'Present').length;
+      const totalCount = attendanceData.length;
+      const percentage = Math.round((presentCount / totalCount) * 100);
+      
+      document.getElementById('attendancePercentage').textContent = `${percentage}%`;
+      
+      const badge = document.getElementById('eligibilityBadge');
+      badge.textContent = percentage >= ATTENDANCE_THRESHOLD ? 'Eligible' : 'Not Eligible';
+      badge.className = 'eligibility-badge ' + 
+          (percentage >= ATTENDANCE_THRESHOLD ? 'eligible' : 'not-eligible');
+    }
+  
+    function populateGradesTable(gradesData) {
+      const tableBody = document.getElementById('gradesTableBody');
+      tableBody.innerHTML = '';
+      
+      if (!gradesData || gradesData.length === 0) {
+          tableBody.innerHTML = `<tr><td colspan="3" class="text-muted">No grade data available</td></tr>`;
+          return;
+      }
+      
+      const sortedGrades = [...gradesData].sort((a, b) => a.subject.localeCompare(b.subject));
+      
+      sortedGrades.forEach(grade => {
+          const row = document.createElement('tr');
+          const gradeClass = grade.grade ? `grade-${grade.grade.toLowerCase()}` : '';
+          const gradeDisplay = grade.grade || 'N/A';
+          
+          row.innerHTML = `
+              <td>${grade.subject || 'No subject'}</td>
+              <td><span class="grade-badge ${gradeClass}">${gradeDisplay}</span></td>
+              <td>${getGradeRemarks(grade.grade)}</td>
+          `;
+          tableBody.appendChild(row);
+      });
+    }
+  
+    function getGradeRemarks(grade) {
+      if (!grade) return 'No grade available';
+      
+      const remarks = {
+          'A': 'Excellent (5.0)',
+          'B': 'Good (4.0)',
+          'C': 'Satisfactory (3.0)',
+          'D': 'Poor (2.0)',
+          'F': 'Fail (0.0)'
+      };
+      return remarks[grade.toUpperCase()] || 'No remark available';
+    }
+  
+    function exportGrades() {
+      const studentId = document.getElementById('studentId').textContent;
+      window.open(`${BASE_URL}export_grades.php?student_id=${studentId}`);
+    }
+  
+    function setupEventListeners() {
+      document.querySelectorAll('.nav-item').forEach(item => {
+        item.addEventListener('click', function() {
+          const sectionId = this.dataset.section;
+          toggleActiveSection(sectionId);
+        });
       });
   
-    // Export report
-    const exportBtn = document.getElementById("downloadReportBtn");
-    if (exportBtn) {
-      exportBtn.addEventListener("click", function () {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-  
-        doc.text("Academic Report", 20, 20);
-        doc.text("Name: " + document.getElementById("profileName").textContent, 20, 30);
-        doc.text("Reg No: " + document.getElementById("profileRegNo").textContent, 20, 40);
-        doc.text("Course: " + document.getElementById("profileCourse").textContent, 20, 50);
-  
-        doc.text("Grades:", 20, 70);
-        const gradeTable = document.getElementById("gradesTable");
-        let y = 80;
-        for (let i = 1; i < gradeTable.rows.length; i++) {
-          const row = gradeTable.rows[i];
-          const subject = row.cells[0].textContent;
-          const grade = row.cells[1].textContent;
-          doc.text(`${subject}: ${grade}`, 25, y);
-          y += 10;
-        }
-  
-        doc.text("Attendance Percentage: " + document.getElementById("attendancePercentage").textContent + "%", 20, y + 10);
-        doc.text("Exam Eligibility: " + document.getElementById("examEligibilityStatus").textContent, 20, y + 20);
-  
-        doc.save("Academic_Report.pdf");
+      document.getElementById('logoutBtn').addEventListener('click', () => {
+        sessionStorage.removeItem('student_id');
+        window.location.href = 'index.html';
       });
+  
+      document.getElementById('exportGradesBtn')?.addEventListener('click', exportGrades);
+    }
+  
+    function toggleActiveSection(sectionId) {
+      document.querySelectorAll('.nav-item').forEach(item => {
+        item.classList.remove('active');
+      });
+      document.querySelector(`[data-section="${sectionId}"]`).classList.add('active');
+      
+      document.querySelectorAll('.section').forEach(section => {
+        section.classList.remove('active');
+      });
+      document.getElementById(sectionId).classList.add('active');
+    }
+  
+    function showError(sectionId, message) {
+      const section = document.getElementById(sectionId);
+      const errorElement = document.createElement('div');
+      errorElement.className = 'error-message';
+      errorElement.textContent = message;
+      section.appendChild(errorElement);
     }
   });
-  
-  // === Helper Functions ===
-  
-  function renderGrades(gradesData) {
-    const subjects = gradesData.map(row => row.subject);
-    const gradeValues = gradesData.map(row => gradeToNumeric(row.grade));
-  
-    // 3D Pie Chart for Grades
-    new Chart(document.getElementById("gradesChart"), {
-      type: 'pie',
-      data: {
-        labels: subjects,
-        datasets: [{
-          data: gradeValues,
-          backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4CAF50', '#FF9800', '#9C27B0'],
-          borderWidth: 1,
-          hoverOffset: 10 // Creates a 3D effect when hovered
-        }]
-      },
-      options: {
-        responsive: true,
-        plugins: {
-          legend: {
-            position: 'top'
-          },
-          tooltip: {
-            callbacks: {
-              label: function (tooltipItem) {
-                const gradeLabels = ['F', 'E', 'D', 'C', 'B', 'A'];
-                return `${subjects[tooltipItem.dataIndex]}: ${gradeLabels[gradeValues[tooltipItem.dataIndex]]}`;
-              }
-            }
-          }
-        }
-      }
-    });
-  
-    // Grades Table
-    const tbody = document.getElementById("gradesTableBody");
-    tbody.innerHTML = '';
-    gradesData.forEach(row => {
-      const tr = document.createElement("tr");
-      tr.innerHTML = `<td>${row.subject}</td><td>${row.grade}</td>`;
-      tbody.appendChild(tr);
-    });
-  }
-  
-  function gradeToNumeric(grade) {
-    const map = { 'A': 5, 'B': 4, 'C': 3, 'D': 2, 'E': 1, 'F': 0 };
-    return map[grade.toUpperCase()] || 0;
-  }
-  
-  function renderAttendance(attendanceData) {
-    const total = attendanceData.length;
-    const present = attendanceData.filter(r => r.status === "Present").length;
-    const attendancePercentage = total > 0 ? Math.round((present / total) * 100) : 0;
-  
-    document.getElementById("attendancePercentage").textContent = attendancePercentage;
-  
-    const eligibility = attendancePercentage >= 75 ? "✅ Eligible for Exams" : "❌ Not Eligible for Exams";
-    const badge = document.getElementById("examEligibilityStatus");
-    badge.textContent = eligibility;
-    badge.style.background = attendancePercentage >= 75 ? "#c8e6c9" : "#ffcdd2";
-    badge.style.color = attendancePercentage >= 75 ? "#256029" : "#c62828";
-  
-    // 3D Bar Chart for Attendance
-    new Chart(document.getElementById("attendanceBarChart"), {
-      type: 'bar',
-      data: {
-        labels: ['Attendance %'],
-        datasets: [{
-          label: 'Attendance Percentage',
-          data: [attendancePercentage],
-          backgroundColor: attendancePercentage >= 75 ? '#2196F3' : '#F44336',
-          borderWidth: 1,
-          borderColor: '#000',
-          hoverBorderWidth: 3, // Adds a 3D effect
-        }]
-      },
-      options: {
-        scales: {
-          y: {
-            beginAtZero: true,
-            max: 100,
-            grid: {
-              display: true
-            },
-            ticks: {
-              stepSize: 10
-            }
-          }
-        },
-        plugins: {
-          tooltip: {
-            callbacks: {
-              label: function (tooltipItem) {
-                return `Attendance: ${tooltipItem.raw}%`;
-              }
-            }
-          }
-        }
-      }
-    });
-  }
-  document.addEventListener("DOMContentLoaded", function () {
-    const logoutBtn = document.getElementById("logoutBtn");
-    if (logoutBtn) {
-        logoutBtn.addEventListener("click", function () {
-            fetch("../backend/logout.php")
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        window.location.href = "../frontend/index.html"; // Redirect to login
-                    } else {
-                        alert("Logout failed!");
-                    }
-                })
-                .catch(error => console.error("Logout error:", error));
-        });
-    }
-});
-
-  

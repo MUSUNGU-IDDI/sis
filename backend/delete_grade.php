@@ -1,31 +1,69 @@
 <?php
-header("Content-Type: application/json");
-require 'db_config.php';
-require 'auth_guard.php';
+// Disable error output to prevent corrupting JSON
+error_reporting(0);
+header("Access-Control-Allow-Origin: *");
+header("Content-Type: application/json; charset=UTF-8");
 
-authorize_role(['lecturer', 'admin']);
+require_once 'db_connection.php';
 
-// Read and decode JSON input
-$input = json_decode(file_get_contents("php://input"), true);
+$response = [
+    'success' => false,
+    'message' => 'An error occurred'
+];
 
-// Input validation
-if (empty($input['grade_id'])) {
-    echo json_encode(["message" => "Grade ID is required"]);
-    exit;
+try {
+    // Verify request method
+    if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+        throw new Exception('Only GET requests are allowed');
+    }
+
+    // Validate grade ID
+    if (!isset($_GET['id']) || empty($_GET['id'])) {
+        throw new Exception('Grade ID is required');
+    }
+
+    $grade_id = filter_var($_GET['id'], FILTER_VALIDATE_INT);
+    if ($grade_id === false || $grade_id <= 0) {
+        throw new Exception('Invalid grade ID');
+    }
+
+    // Prepare and execute delete statement
+    $stmt = $conn->prepare("DELETE FROM grades WHERE grade_id = :grade_id");
+    $stmt->bindParam(':grade_id', $grade_id, PDO::PARAM_INT);
+    
+    if (!$stmt->execute()) {
+        throw new Exception('Failed to execute delete query');
+    }
+
+    $rowsAffected = $stmt->rowCount();
+    if ($rowsAffected > 0) {
+        $response = [
+            'success' => true,
+            'message' => 'Grade deleted successfully',
+            'deleted_id' => $grade_id
+        ];
+    } else {
+        $response = [
+            'success' => false,
+            'message' => 'No grade found with that ID',
+            'deleted_id' => null
+        ];
+    }
+
+} catch (PDOException $e) {
+    $response = [
+        'success' => false,
+        'message' => 'Database error: ' . $e->getMessage()
+    ];
+} catch (Exception $e) {
+    $response = [
+        'success' => false,
+        'message' => $e->getMessage()
+    ];
 }
 
-$grade_id = intval($input['grade_id']);
-
-// Delete grade from the database
-$stmt = $conn->prepare("DELETE FROM grades WHERE grade_id = ?");
-$stmt->bind_param("i", $grade_id);
-
-if ($stmt->execute()) {
-    echo json_encode(["message" => "Grade deleted successfully"]);
-} else {
-    echo json_encode(["message" => "Failed to delete grade"]);
-}
-
-$stmt->close();
-$conn->close();
+// Clear any output buffers and send JSON
+ob_clean();
+echo json_encode($response);
+exit;
 ?>

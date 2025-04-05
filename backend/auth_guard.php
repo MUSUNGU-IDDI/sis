@@ -1,25 +1,55 @@
 <?php
-session_start();
+header("Content-Type: application/json");
+require 'db_connection.php';
 
-/**
- * Checks if the current session user is logged in and has allowed role(s)
- * @param array $allowed_roles - roles allowed to access the endpoint
- */
-function authorize_role($allowed_roles = []) {
-    // Check if user session exists
-    if (!isset($_SESSION['user'])) {
-        http_response_code(401);
-        echo json_encode(["message" => "Unauthorized: Login required"]);
-        exit;
-    }
+// Start session if not already started
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
-    // Get user's role from session
-    $user_role = $_SESSION['user']['role'];
+// Check if user is authenticated
+if (empty($_SESSION['user'])) {
+    http_response_code(401);
+    echo json_encode(["success" => false, "message" => "Unauthorized"]);
+    exit;
+}
 
-    // Check if role is allowed
-    if (!in_array($user_role, $allowed_roles)) {
+// Get current user data
+$user = $_SESSION['user'];
+
+// For endpoints that require specific roles
+function requireRole($requiredRole) {
+    global $user;
+    
+    if ($user['role'] !== $requiredRole) {
         http_response_code(403);
-        echo json_encode(["message" => "Forbidden: You don't have permission"]);
+        echo json_encode(["success" => false, "message" => "Forbidden: Insufficient privileges"]);
         exit;
     }
 }
+
+// For endpoints that require student access
+function requireStudent() {
+    global $user;
+    
+    if ($user['role'] !== 'student' || empty($user['student_id'])) {
+        http_response_code(403);
+        echo json_encode(["success" => false, "message" => "Forbidden: Student access required"]);
+        exit;
+    }
+    
+    return $user['student_id'];
+}
+
+// Make user data available to protected endpoints
+$currentUser = [
+    'user_id' => $user['user_id'],
+    'email' => $user['email'],
+    'role' => $user['role'],
+    'name' => $user['name']
+];
+
+if ($user['role'] === 'student') {
+    $currentUser['student_id'] = $user['student_id'];
+}
+?>

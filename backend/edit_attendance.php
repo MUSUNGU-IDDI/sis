@@ -1,34 +1,45 @@
 <?php
+header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json");
-require 'db_config.php';
-//require 'auth_guard.php';
 
-//authorize_role(['lecturer', 'admin']);
+require_once 'db_connection.php';
 
-// Read and decode JSON input
-$input = json_decode(file_get_contents("php://input"), true);
+$data = json_decode(file_get_contents('php://input'), true);
 
-// Input validation
-if (empty($input['attendance_id']) || empty($input['student_id']) || empty($input['date']) || empty($input['status'])) {
-    echo json_encode(["message" => "All fields are required"]);
-    exit;
+try {
+    if ($data['attendance_id']) {
+        // Update existing record
+        $stmt = $conn->prepare("
+            UPDATE attendance 
+            SET student_id = :student_id,
+                date = :date,
+                status = :status
+            WHERE attendance_id = :attendance_id
+        ");
+    } else {
+        // Create new record
+        $stmt = $conn->prepare("
+            INSERT INTO attendance (student_id, date, status)
+            VALUES (:student_id, :date, :status)
+        ");
+    }
+    
+    $success = $stmt->execute([
+        ':student_id' => $data['student_id'],
+        ':date' => $data['date'],
+        ':status' => $data['status'],
+        ':attendance_id' => $data['attendance_id'] ?? null
+    ]);
+    
+    echo json_encode([
+        'success' => $success,
+        'message' => $success ? 'Attendance recorded' : 'Failed to record attendance'
+    ]);
+    
+} catch(PDOException $e) {
+    echo json_encode([
+        'success' => false,
+        'message' => 'Database error: ' . $e->getMessage()
+    ]);
 }
-
-$attendance_id = intval($input['attendance_id']);
-$student_id = intval($input['student_id']);
-$date = $input['date']; // Format: YYYY-MM-DD
-$status = htmlspecialchars($input['status']); // Present or Absent
-
-// Update the attendance record
-$stmt = $conn->prepare("UPDATE attendance SET student_id = ?, date = ?, status = ? WHERE attendance_id = ?");
-$stmt->bind_param("issi", $student_id, $date, $status, $attendance_id);
-
-if ($stmt->execute()) {
-    echo json_encode(["message" => "Attendance updated successfully"]);
-} else {
-    echo json_encode(["message" => "Attendance update failed"]);
-}
-
-$stmt->close();
-$conn->close();
 ?>

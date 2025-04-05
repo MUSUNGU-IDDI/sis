@@ -1,116 +1,148 @@
-window.onload = function () {
-document.getElementById('loginForm').addEventListener('submit', function (e) {
+// Login handler
+document.getElementById('loginForm')?.addEventListener('submit', function(e) {
     e.preventDefault();
   
     const email = document.getElementById('email').value.trim();
     const password = document.getElementById('password').value.trim();
     const messageBox = document.getElementById('formMessage');
-  
-    fetch('http://localhost/sis/backend/login.php', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      body: JSON.stringify({ email, password })
-    })
-      .then(response => response.json())
-      .then(data => {
-        if (data.message === 'Login successful') {
-          // Redirect based on role
-          const role = data.user.role;
-          if (role === 'student') {
-            window.location.href = 'dashboard_student.html';
-          } else if (role === 'lecturer') {
-            window.location.href = 'dashboard_lecturer.html';
-          } else if (role === 'admin') {
-            window.location.href = 'dashboard_admin.html';
-          }
-        } else {
-          messageBox.textContent = data.message;
-        }
-      })
-      .catch(err => {
-        console.error(err);
-        messageBox.textContent = "Something went wrong. Please try again.";
-      });
-  });
-}
-  // Registration handler
-const registerForm = document.getElementById('registerForm');
-if (registerForm) {
-  registerForm.addEventListener('submit', function(e) {
-    e.preventDefault();
-    console.log("✅ Register form submitted");
+    messageBox.textContent = '';
+    messageBox.style.display = 'none';
 
+    fetch('http://localhost/sis/backend/login.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        },
+        body: JSON.stringify({ email, password }),
+        credentials: 'include' // Required for session cookies
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            // Store user data in sessionStorage
+            sessionStorage.setItem('user', JSON.stringify(data.user));
+            
+            // Redirect based on role
+            switch(data.user.role) {
+                case 'student':
+                    window.location.href = 'dashboard_student.html';
+                    break;
+                case 'lecturer':
+                    window.location.href = 'lecturer_dashboard.html';
+                    break;
+                case 'admin':
+                    window.location.href = 'admin_dashboard.html';
+                    break;
+                default:
+                    window.location.href = 'index.html';
+            }
+        } else {
+            messageBox.textContent = data.message || 'Login failed';
+            messageBox.style.display = 'block';
+        }
+    })
+    .catch(err => {
+        console.error('Login error:', err);
+        messageBox.textContent = "Login service unavailable. Please try again later.";
+        messageBox.style.display = 'block';
+    });
+});
+
+// Registration handler
+document.getElementById('registerForm')?.addEventListener('submit', function(e) {
+    e.preventDefault();
 
     const name = document.getElementById('name').value.trim();
     const email = document.getElementById('email').value.trim();
     const password = document.getElementById('password').value.trim();
     const role = document.getElementById('role').value;
-    const course = document.getElementById('course') ? document.getElementById('course').value : '';
-   
-    console.log("📦 Sending course:", course); 
+    const course = document.getElementById('course')?.value || '';
     const messageBox = document.getElementById('formMessage');
+    messageBox.textContent = '';
+    messageBox.style.display = 'none';
     
     fetch('http://localhost/sis/backend/register.php', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      body: JSON.stringify({ name, email, password, role, course })
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        },
+        body: JSON.stringify({ name, email, password, role, course })
     })
-    .then(res => res.json())
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
     .then(data => {
-      messageBox.textContent = data.message;
-      if (data.message === "User registered successfully") {
-        setTimeout(() => {
-          window.location.href = "index.html";
-        }, 1500);
-      }
+        messageBox.textContent = data.message;
+        messageBox.style.display = 'block';
+        
+        if (data.success) {
+            messageBox.style.color = 'green';
+            setTimeout(() => {
+                window.location.href = "index.html";
+            }, 1500);
+        } else {
+            messageBox.style.color = 'red';
+        }
     })
     .catch(err => {
-      console.error(err);
-      messageBox.textContent = "Something went wrong!";
+        console.error('Registration error:', err);
+        messageBox.textContent = "Registration service unavailable. Please try again later.";
+        messageBox.style.display = 'block';
+        messageBox.style.color = 'red';
     });
-  });
-}
+});
 
-// 🔹 RESET PASSWORD HANDLER
-const resetForm = document.getElementById('resetPasswordForm');
-if (resetForm) {
-  resetForm.addEventListener('submit', function(e) {
+// Password reset handler
+document.getElementById('resetPasswordForm')?.addEventListener('submit', function(e) {
     e.preventDefault();
 
     const email = document.getElementById('resetEmail').value.trim();
     const newPassword = document.getElementById('newPassword').value.trim();
     const messageBox = document.getElementById('formMessage');
+    messageBox.textContent = '';
+    messageBox.style.display = 'none';
 
     fetch('http://localhost/sis/backend/reset_password.php', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      body: JSON.stringify({ email, new_password: newPassword })
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        },
+        body: JSON.stringify({ email, new_password: newPassword })
     })
-    .then(res => res.json())
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
     .then(data => {
-      console.log("🔑 Reset password response:", data);
-      messageBox.textContent = data.message;
-      if (data.message === "Password reset successful") {
-        setTimeout(() => {
-          window.location.href = "index.html";
-        }, 1500);
-      }
+        messageBox.textContent = data.message;
+        messageBox.style.display = 'block';
+        
+        if (data.success) {
+            messageBox.style.color = 'green';
+            setTimeout(() => {
+                window.location.href = "index.html";
+            }, 1500);
+        } else {
+            messageBox.style.color = 'red';
+        }
     })
     .catch(err => {
-      console.error(err);
-      messageBox.textContent = "Something went wrong!";
+        console.error('Password reset error:', err);
+        messageBox.textContent = "Password reset service unavailable. Please try again later.";
+        messageBox.style.display = 'block';
+        messageBox.style.color = 'red';
     });
-  });
-}
-
-
-  
+});

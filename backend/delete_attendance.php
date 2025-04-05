@@ -1,28 +1,70 @@
 <?php
-header("Content-Type: application/json");
-require 'db_config.php';
-require 'auth_guard.php';
+// Strict error reporting
+error_reporting(0); // Disable error output to prevent corrupting JSON
+header("Access-Control-Allow-Origin: *");
+header("Content-Type: application/json; charset=UTF-8");
 
-authorize_role(['lecturer', 'admin']);
+require_once 'db_connection.php';
 
-$input = json_decode(file_get_contents("php://input"), true);
+// Initialize response array
+$response = [
+    'success' => false,
+    'message' => 'Unknown error occurred'
+];
 
-if (empty($input['attendance_id'])) {
-    echo json_encode(["message" => "Attendance ID is required"]);
-    exit;
+try {
+    // Verify request method
+    if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+        throw new Exception('Only GET requests are allowed');
+    }
+
+    // Validate ID parameter
+    if (!isset($_GET['id']) || empty($_GET['id'])) {
+        throw new Exception('Attendance ID is required');
+    }
+
+    $attendance_id = filter_var($_GET['id'], FILTER_VALIDATE_INT);
+    if ($attendance_id === false || $attendance_id <= 0) {
+        throw new Exception('Invalid attendance ID format');
+    }
+
+    // Prepare and execute delete statement
+    $stmt = $conn->prepare("DELETE FROM attendance WHERE attendance_id = :id");
+    $stmt->bindParam(':id', $attendance_id, PDO::PARAM_INT);
+    
+    if (!$stmt->execute()) {
+        throw new Exception('Failed to execute database query');
+    }
+
+    $rowsAffected = $stmt->rowCount();
+    if ($rowsAffected > 0) {
+        $response = [
+            'success' => true,
+            'message' => 'Attendance record deleted successfully',
+            'deleted_id' => $attendance_id
+        ];
+    } else {
+        $response = [
+            'success' => false,
+            'message' => 'No attendance record found with that ID',
+            'deleted_id' => null
+        ];
+    }
+
+} catch (PDOException $e) {
+    $response = [
+        'success' => false,
+        'message' => 'Database error: ' . $e->getMessage()
+    ];
+} catch (Exception $e) {
+    $response = [
+        'success' => false,
+        'message' => $e->getMessage()
+    ];
 }
 
-$attendance_id = intval($input['attendance_id']);
-
-$stmt = $conn->prepare("DELETE FROM attendance WHERE attendance_id = ?");
-$stmt->bind_param("i", $attendance_id);
-
-if ($stmt->execute()) {
-    echo json_encode(["message" => "Attendance record deleted successfully"]);
-} else {
-    echo json_encode(["message" => "Attendance deletion failed"]);
-}
-
-$stmt->close();
-$conn->close();
+// Ensure no output before this
+ob_clean(); // Clear any potential output buffers
+echo json_encode($response);
+exit;
 ?>

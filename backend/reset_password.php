@@ -1,44 +1,29 @@
 <?php
 header("Content-Type: application/json");
-require 'db_config.php';
+require 'db_connection.php';
 
-$inputJSON = file_get_contents("php://input");
-$input = json_decode($inputJSON, true);
+$input = json_decode(file_get_contents("php://input"), true);
 
-// Check inputs
 if (empty($input['email']) || empty($input['new_password'])) {
-    echo json_encode(["message" => "Email and new password are required"]);
+    http_response_code(400);
+    echo json_encode(["success" => false, "message" => "Email and new password are required"]);
     exit;
 }
 
-$email = filter_var($input['email'], FILTER_VALIDATE_EMAIL);
-$new_password = $input['new_password'];
+$email = $input['email'];
+$hashedPassword = password_hash($input['new_password'], PASSWORD_DEFAULT);
 
-// Step 1: Check if email exists
-$stmt = $conn->prepare("SELECT user_id FROM users WHERE email = ?");
-$stmt->bind_param("s", $email);
-$stmt->execute();
-$result = $stmt->get_result();
-
-if ($result->num_rows === 0) {
-    echo json_encode(["message" => "Email not found"]);
-    exit;
+try {
+    $stmt = $conn->prepare("UPDATE users SET password = ? WHERE email = ?");
+    $stmt->execute([$hashedPassword, $email]);
+    
+    if ($stmt->rowCount() > 0) {
+        echo json_encode(["success" => true, "message" => "Password updated successfully"]);
+    } else {
+        echo json_encode(["success" => false, "message" => "No user found with that email"]);
+    }
+} catch (PDOException $e) {
+    http_response_code(500);
+    echo json_encode(["success" => false, "message" => "Database error"]);
 }
-
-// Step 2: Hash the new password
-$hashed_password = password_hash($new_password, PASSWORD_DEFAULT);
-
-// Step 3: Update password in the database
-$update = $conn->prepare("UPDATE users SET password = ? WHERE email = ?");
-$update->bind_param("ss", $hashed_password, $email);
-
-if ($update->execute()) {
-    echo json_encode(["message" => "Password reset successful"]);
-} else {
-    echo json_encode(["message" => "Failed to reset password"]);
-}
-
-$stmt->close();
-$update->close();
-$conn->close();
 ?>

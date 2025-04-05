@@ -12,11 +12,11 @@
     <div class="sidebar" id="sidebar">
       <h2>Lecturer Panel</h2>
       <ul>
-        <li class="nav-item active" onclick="showSection('dashboard')">🏠 Dashboard</li>
-        <li class="nav-item" onclick="showSection('manageGrades')">📊 Manage Grades</li>
-        <li class="nav-item" onclick="showSection('manageAttendance')">✅ Manage Attendance</li>
-        <li class="nav-item" onclick="showSection('analytics')">📈 Analytics</li>
-        <li class="nav-item" onclick="showSection('exportReports')">📂 Export Reports</li>
+        <li class="nav-item active" data-section="dashboard">🏠 Dashboard</li>
+        <li class="nav-item" data-section="manageGrades">📊 Manage Grades</li>
+        <li class="nav-item" data-section="manageAttendance">✅ Manage Attendance</li>
+        <li class="nav-item" data-section="analytics">📈 Analytics</li>
+        <li class="nav-item" data-section="exportReports">📂 Export Reports</li>
       </ul>
       <button class="logout-btn">🚪 Logout</button>
       <button id="toggleSidebar" class="toggle-btn">☰</button>
@@ -61,14 +61,22 @@
       <section id="manageGrades" class="section">
         <h2>Manage Grades</h2>
         <form id="gradeForm">
+          <input type="hidden" id="gradeId" name="gradeId">
+          
           <label for="studentSelect">Student:</label>
-          <select id="studentSelect" required>
+          <select id="studentSelect" name="student_id" required>
             <option value="">-- Select Student --</option>
-            <!-- Populate dynamically -->
+            <!-- Populated dynamically -->
           </select>
+          
+          <br>
+          <label for="subject">Subject:</label>
+          <input type="text" id="subject" name="subject" required>
+          
           <br>
           <label for="gradeInput">Grade:</label>
-          <input type="text" id="gradeInput" required>
+          <input type="text" id="gradeInput" name="grade" required>
+          
           <br>
           <button type="submit">Submit Grade</button>
         </form>
@@ -77,6 +85,7 @@
           <thead>
             <tr>
               <th>Student</th>
+              <th>Subject</th>
               <th>Grade</th>
               <th>Actions</th>
             </tr>
@@ -91,17 +100,25 @@
       <section id="manageAttendance" class="section">
         <h2>Manage Attendance</h2>
         <form id="attendanceForm">
+          <input type="hidden" id="attendanceId" name="attendanceId">
+          
           <label for="attendanceStudentSelect">Student:</label>
-          <select id="attendanceStudentSelect" required>
+          <select id="attendanceStudentSelect" name="student_id" required>
             <option value="">-- Select Student --</option>
-            <!-- Populate dynamically -->
+            <!-- Populated dynamically -->
           </select>
+          
           <br>
-          <label for="attendanceStatus">Attendance:</label>
-          <select id="attendanceStatus" required>
+          <label for="attendanceDate">Date:</label>
+          <input type="date" id="attendanceDate" name="date" required>
+          
+          <br>
+          <label for="attendanceStatus">Status:</label>
+          <select id="attendanceStatus" name="status" required>
             <option value="Present">Present</option>
             <option value="Absent">Absent</option>
           </select>
+          
           <br>
           <button type="submit">Update Attendance</button>
         </form>
@@ -110,8 +127,8 @@
           <thead>
             <tr>
               <th>Student</th>
-              <th>Status</th>
               <th>Date</th>
+              <th>Status</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -130,8 +147,6 @@
         <div class="chart-container">
           <canvas id="attendanceTrendChart"></canvas>
         </div>
-        <h3>Top & Bottom Performers</h3>
-        <table id="performanceTable">
           <thead>
             <tr>
               <th>Student</th>
@@ -139,7 +154,7 @@
             </tr>
           </thead>
           <tbody>
-            <!-- Dynamic data goes here -->
+            <!-- Dynamic data will be inserted here -->
           </tbody>
         </table>
       </section>
@@ -152,6 +167,13 @@
       </section>
     </div>
   </div>
+
+  <!-- Global Configuration -->
+  <script>
+    window.API_BASE_URL = window.location.origin + '/backend';
+  </script>
+  
+  <!-- Main JavaScript -->
   <script src="js/lecturer_dashboard.js"></script>
 </body>
 </html>

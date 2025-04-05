@@ -1,6 +1,14 @@
 <?php
-session_start();
+header("Content-Type: application/json");
+
+// Start session if not already started
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+// Destroy session
+session_unset();
 session_destroy();
-header("Location: ../frontend/index.html");
-exit;
+
+echo json_encode(["success" => true, "message" => "Logged out successfully"]);
 ?>

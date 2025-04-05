@@ -1,22 +1,18 @@
 <?php
-require 'db_config.php';
-require 'auth_guard.php';
+require_once 'db_connection.php';
 
-authorize_role(['admin']);
+header("Content-Type: text/csv");
+header("Content-Disposition: attachment; filename=grades.csv");
 
-header('Content-Type: text/csv');
-header('Content-Disposition: attachment;filename=grades_export.csv');
+$student_id = (int)$_GET['student_id'];
 
+// Get data
+$stmt = $conn->prepare("SELECT subject, grade FROM grades WHERE student_id = ?");
+$stmt->execute([$student_id]);
+
+// Output CSV
 $output = fopen('php://output', 'w');
-fputcsv($output, ['Grade ID', 'Student ID', 'Subject', 'Grade', 'Date Entered']);
-
-$sql = "SELECT grade_id, student_id, subject, grade, created_at FROM grades";
-$result = $conn->query($sql);
-
-while ($row = $result->fetch_assoc()) {
+while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
     fputcsv($output, $row);
 }
-
 fclose($output);
-$conn->close();
-exit;

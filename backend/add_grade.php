@@ -1,33 +1,42 @@
 <?php
+header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json");
-require 'db_config.php'; // Ensure this matches your actual file structure
-require 'auth_guard.php';//
+require_once 'db_connection.php';
 
-authorize_role(['lecturer', 'admin']);
+$data = json_decode(file_get_contents('php://input'), true);
 
-// Read and decode JSON input
-$input = json_decode(file_get_contents("php://input"), true);
+try {
+    // Validate required fields
+    if (empty($data['student_id']) || empty($data['subject']) || empty($data['grade'])) {
+        throw new Exception('Missing required fields');
+    }
 
-// Input validation
-if (empty($input['student_id']) || empty($input['subject']) || empty($input['grade'])) {
-    echo json_encode(["message" => "All fields are required"]);
-    exit;
+    $stmt = $conn->prepare("
+        INSERT INTO grades (student_id, subject, grade)
+        VALUES (:student_id, :subject, :grade)
+    ");
+    
+    $success = $stmt->execute([
+        ':student_id' => $data['student_id'],
+        ':subject' => $data['subject'],
+        ':grade' => $data['grade']
+    ]);
+
+    echo json_encode([
+        'success' => $success,
+        'message' => $success ? 'Grade added successfully' : 'Failed to add grade',
+        'grade_id' => $conn->lastInsertId()
+    ]);
+
+} catch (PDOException $e) {
+    echo json_encode([
+        'success' => false,
+        'message' => 'Database error: ' . $e->getMessage()
+    ]);
+} catch (Exception $e) {
+    echo json_encode([
+        'success' => false,
+        'message' => $e->getMessage()
+    ]);
 }
-
-$student_id = intval($input['student_id']);
-$subject = htmlspecialchars($input['subject']); // Prevent XSS
-$grade = strtoupper(htmlspecialchars($input['grade'])); // Convert to uppercase (A-F)
-
-// Insert into grades table
-$stmt = $conn->prepare("INSERT INTO grades (student_id, subject, grade) VALUES (?, ?, ?)");
-$stmt->bind_param("iss", $student_id, $subject, $grade);
-
-if ($stmt->execute()) {
-    echo json_encode(["message" => "Grade added successfully"]);
-} else {
-    echo json_encode(["message" => "Failed to add grade"]);
-}
-
-$stmt->close();
-$conn->close();
 ?>
